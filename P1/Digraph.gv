@@ -1,0 +1,22 @@
+// BN learned from data using Hill Climb Search
+digraph {
+	Age
+	Sex
+	ChestPainType
+	RestingBP
+	Cholesterol
+	FastingBS
+	RestingECG
+	MaxHR
+	ExerciseAngina
+	Oldpeak
+	ST_Slope
+	HeartDisease
+	ChestPainType -> HeartDisease
+	FastingBS -> RestingECG
+	ST_Slope -> ExerciseAngina
+	HeartDisease -> ST_Slope
+	HeartDisease -> ExerciseAngina
+	HeartDisease -> Sex
+	HeartDisease -> FastingBS
+}
