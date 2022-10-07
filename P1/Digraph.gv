@@ -12,11 +12,18 @@ digraph {
 	Oldpeak
 	ST_Slope
 	HeartDisease
-	ChestPainType -> HeartDisease
-	FastingBS -> RestingECG
-	ST_Slope -> ExerciseAngina
+	Age -> RestingECG
+	MaxHR -> Age
+	ExerciseAngina -> HeartDisease
+	ExerciseAngina -> ST_Slope
+	ExerciseAngina -> MaxHR
+	ExerciseAngina -> ChestPainType
+	ST_Slope -> Oldpeak
 	HeartDisease -> ST_Slope
-	HeartDisease -> ExerciseAngina
+	HeartDisease -> ChestPainType
+	HeartDisease -> MaxHR
 	HeartDisease -> Sex
 	HeartDisease -> FastingBS
+	HeartDisease -> Cholesterol
+	HeartDisease -> Oldpeak
 }
