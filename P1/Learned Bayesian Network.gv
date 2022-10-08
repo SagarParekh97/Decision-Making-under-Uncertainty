@@ -1,5 +1,5 @@
 // BN learned from data using Hill Climb Search
-digraph {
+digraph "Learned Bayesian Network" {
 	Age
 	Sex
 	ChestPainType
@@ -12,22 +12,23 @@ digraph {
 	Oldpeak
 	ST_Slope
 	HeartDisease
-	Age -> MaxHR
-	Age -> RestingECG
-	Age -> RestingBP
-	ChestPainType -> HeartDisease
-	ChestPainType -> ExerciseAngina
+	RestingBP -> HeartDisease
+	Cholesterol -> RestingECG
+	Cholesterol -> Sex
 	FastingBS -> Cholesterol
+	MaxHR -> Age
+	ExerciseAngina -> HeartDisease
 	ExerciseAngina -> ST_Slope
-	ExerciseAngina -> FastingBS
-	Oldpeak -> Age
+	ExerciseAngina -> ChestPainType
+	ExerciseAngina -> MaxHR
+	Oldpeak -> FastingBS
 	ST_Slope -> Oldpeak
 	HeartDisease -> ST_Slope
-	HeartDisease -> ExerciseAngina
+	HeartDisease -> ChestPainType
 	HeartDisease -> Cholesterol
 	HeartDisease -> MaxHR
-	HeartDisease -> FastingBS
 	HeartDisease -> Age
 	HeartDisease -> Sex
+	HeartDisease -> FastingBS
 	HeartDisease -> Oldpeak
 }
