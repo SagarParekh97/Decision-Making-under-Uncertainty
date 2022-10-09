@@ -12,23 +12,25 @@ digraph "Learned Bayesian Network" {
 	Oldpeak
 	ST_Slope
 	HeartDisease
-	RestingBP -> HeartDisease
-	Cholesterol -> RestingECG
+	Age -> RestingECG
+	RestingBP -> ExerciseAngina
 	Cholesterol -> Sex
 	FastingBS -> Cholesterol
+	RestingECG -> FastingBS
 	MaxHR -> Age
-	ExerciseAngina -> HeartDisease
-	ExerciseAngina -> ST_Slope
 	ExerciseAngina -> ChestPainType
 	ExerciseAngina -> MaxHR
-	Oldpeak -> FastingBS
-	ST_Slope -> Oldpeak
-	HeartDisease -> ST_Slope
+	ExerciseAngina -> FastingBS
+	Oldpeak -> ST_Slope
+	Oldpeak -> HeartDisease
+	ST_Slope -> HeartDisease
+	ST_Slope -> ExerciseAngina
+	ST_Slope -> RestingBP
 	HeartDisease -> ChestPainType
+	HeartDisease -> ExerciseAngina
 	HeartDisease -> Cholesterol
 	HeartDisease -> MaxHR
-	HeartDisease -> Age
 	HeartDisease -> Sex
+	HeartDisease -> Age
 	HeartDisease -> FastingBS
-	HeartDisease -> Oldpeak
 }
