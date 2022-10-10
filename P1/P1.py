@@ -238,7 +238,7 @@ for node in best_model.nodes():
 for edge in best_model.edges():
     bn_hc.edge(edge[1], edge[0])
     
-bn_hc.render(view=False)
+bn_hc.render(view=True)
 bn_hc
 
 
