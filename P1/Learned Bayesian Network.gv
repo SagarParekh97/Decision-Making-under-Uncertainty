@@ -1,33 +1,33 @@
 // BN learned from data using Hill Climb Search
 digraph "Learned Bayesian Network" {
 	Age
-	Sex
 	ChestPainType
-	RestingBP
 	Cholesterol
-	FastingBS
-	RestingECG
-	MaxHR
 	ExerciseAngina
-	Oldpeak
-	ST_Slope
+	FastingBS
 	HeartDisease
-	RestingECG -> Age
-	RestingBP -> Cholesterol
-	Cholesterol -> FastingBS
-	FastingBS -> RestingECG
-	Age -> MaxHR
-	ChestPainType -> ExerciseAngina
-	MaxHR -> ExerciseAngina
-	ExerciseAngina -> Oldpeak
-	HeartDisease -> ST_Slope
-	Oldpeak -> ST_Slope
-	ChestPainType -> HeartDisease
-	ExerciseAngina -> HeartDisease
-	Cholesterol -> HeartDisease
-	MaxHR -> HeartDisease
-	FastingBS -> HeartDisease
-	Sex -> HeartDisease
-	Oldpeak -> HeartDisease
+	MaxHR
+	Oldpeak
+	RestingBP
+	RestingECG
+	ST_Slope
+	Sex
 	Age -> HeartDisease
+	Age -> MaxHR
+	Cholesterol -> FastingBS
+	Cholesterol -> HeartDisease
+	ExerciseAngina -> HeartDisease
+	ExerciseAngina -> Oldpeak
+	FastingBS -> HeartDisease
+	FastingBS -> Oldpeak
+	HeartDisease -> ChestPainType
+	MaxHR -> ExerciseAngina
+	MaxHR -> HeartDisease
+	Oldpeak -> HeartDisease
+	Oldpeak -> ST_Slope
+	RestingBP -> Cholesterol
+	RestingECG -> Cholesterol
+	ST_Slope -> HeartDisease
+	Sex -> ExerciseAngina
+	Sex -> HeartDisease
 }
