@@ -2,20 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="afa50925-1070-44cf-b520-5d4a8d353d1e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/gym_grid/gym_grid/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gym_grid/gym_grid/envs/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gym_grid/gym_grid/envs/grid_world.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gym_grid/setup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../.idea/Decision-Making-under-Uncertainty.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/Decision-Making-under-Uncertainty.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../P1/.ipynb_checkpoints/P1-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../P1/.ipynb_checkpoints/P1-checkpoint.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../P1/Learned Bayesian Network.gv.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/../P1/Learned Bayesian Network.gv.pdf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../P1/P1.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../P1/P1.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PPO.py" beforeDir="false" afterPath="$PROJECT_DIR$/PPO.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/runs/CartPole-v1_None_1669783993/events.out.tfevents.1669783996.IDEA.27652.0" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,6 +36,9 @@
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="project.structure.last.edited" value="Project" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="project.structure.side.proportion" value="0.0" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
