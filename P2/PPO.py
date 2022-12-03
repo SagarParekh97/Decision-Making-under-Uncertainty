@@ -1,16 +1,15 @@
-import argparse
+import matplotlib.pyplot as plt
 import os
-import random
 import time
-from distutils.util import strtobool
-import gym_grid
 import gym
+import gym_grid
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
+import datetime
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -70,10 +69,11 @@ class Agent(nn.Module):
         return action_logprobs, value, dist_entropy
 
 class PPO(object):
-    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip):
+    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy):
         self.gamma = gamma
         self.eps_clip = eps_clip
         self.num_epochs = num_epochs
+        self.entropy = entropy
 
         self.mem_buffer = Memory_buffer()
 
@@ -102,7 +102,6 @@ class PPO(object):
 
 
     def update(self):
-        rewards = []
         # Monte Carlo estimate of returns
         rewards = []
         discounted_reward = 0
@@ -139,7 +138,7 @@ class PPO(object):
             surr2 = torch.clamp(ratios, 1-self.eps_clip, 1+self.eps_clip) * advantages
 
             # final loss of clipped objective PPO
-            loss = -torch.min(surr1, surr2) + 0.5*self.loss(state_values, rewards) - 0.01*dist_entropy
+            loss = -torch.min(surr1, surr2) + 0.5*self.loss(state_values, rewards) - self.entropy*dist_entropy
 
             # take gradient step
             self.optim.zero_grad()
@@ -168,12 +167,14 @@ if __name__ == "__main__":
     run_name = f"{env_name}_{int(time.time())}"
     writer = SummaryWriter(f"runs/{run_name}")
 
-    max_ep_len = 1000
-    max_training_timesteps = 5e6
+    max_ep_len = 100
+    max_training_timesteps = 2e5
 
     ################ PPO hyperparameters ################
     update_timestep = max_ep_len * 4      # update policy every n timesteps
-    num_epochs = 80               # update policy for K epochs in one PPO update
+    num_epochs = 30               # update policy for K epochs in one PPO update
+
+    entropy_coeff = 0.01    # entropy coefficient to encourage exploration
 
     eps_clip = 0.2          # clip parameter for PPO
     gamma = 0.99            # discount factor
@@ -186,23 +187,29 @@ if __name__ == "__main__":
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
 
-    dir = 'models/{}/'.format(int(time.time()))
+    dir = 'models/{}/'.format(datetime.datetime.now().strftime("%m-%d_%H-%M"))
     if not os.path.exists(dir):
         os.makedirs(dir)
 
     checkpoint_path = dir + 'PPO_model'
 
-    agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip)
+    render_dir = 'episode_renders/{}/'.format(datetime.datetime.now().strftime("%m-%d_%H-%M"))
+    if not os.path.exists(render_dir):
+        os.makedirs(render_dir)
+
+    agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy_coeff)
 
     start_time = time.time()
 
     time_step = 0
     i_episode = 0
     while time_step <= max_training_timesteps:
+        states = []
         state = env.reset()
         ep_reward = 0
 
         for t in range(1, max_ep_len+1):
+            states.append(state)
             action = agent.select_action(state)
             state, reward, done, _ = env.step(action)
 
@@ -223,8 +230,21 @@ if __name__ == "__main__":
                 print('Saving model at: ', checkpoint_path)
                 agent.save(checkpoint_path)
 
+            # env.render()
+
             if done:
                 break
+
+
+        states = np.asarray(states)
+
+        _, ax = plt.subplots(1, 1)
+        ax.plot(states[:, 0], states[:, 1], 'k-')
+        ax.plot(env.goal_position[0], env.goal_position[1], 'b*')
+        ax.set_xlim(0, env.size[0])
+        ax.set_ylim(0, env.size[1])
+        plt.savefig(render_dir + '{}.png'.format(i_episode), dpi=300)
+        plt.close()
 
         print('Episode: {}, Reward: {}'.format(i_episode, ep_reward))
         i_episode += 1
