@@ -130,17 +130,21 @@ render_dir = 'episode_renders/{}_{}/'.format(save_name, datetime.datetime.now().
 if not os.path.exists(render_dir):
     os.makedirs(render_dir)
 
+total_t = 0
 for episode in range(max_training_ep):
     states = []
     s = env.reset()
     states.append(s.copy())
     t = 0
     r = 0.0
+    ep_r = 0.
     while t < max_episode_len:
         t += 1
+        total_t += 1
         qs = dqn.eval_q_net(th.FloatTensor(s / max(env.observation_space.high)).to(device))
         a = dqn.choose_action(qs)
         s_, r, done, _ = env.step(a)
+        ep_r += r
         states.append(s_.copy())
         transition = [(s / max(env.observation_space.high)).tolist(), a, [r], (s_ / max(env.observation_space.high)).tolist(), [done]]
         dqn.replay_mem.store_transition(transition)
@@ -149,6 +153,8 @@ for episode in range(max_training_ep):
             dqn.learn()
         if done:
             break
+
+        writer.add_scalar('performance/reward', r, total_t)
 
     if episode % 100 == 0: #test
         total_reward = 0.0
