@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import os
 import time
 import gym
@@ -57,7 +56,7 @@ class Agent(nn.Module):
         action = dist.sample()
         action_logprob = dist.log_prob(action)
 
-        return action.detach().cpu(), action_logprob.detach().cpu()
+        return action.detach().cpu(), action_logprob.detach().cpu(), action_probs.detach().cpu()
 
     def evaluate(self, state, action):
         action_probs = self.actor(state)
@@ -69,11 +68,12 @@ class Agent(nn.Module):
         return action_logprobs, value, dist_entropy
 
 class PPO(object):
-    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy):
+    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy, env_size):
         self.gamma = gamma
         self.eps_clip = eps_clip
         self.num_epochs = num_epochs
         self.entropy = entropy
+        self.env_size = env_size
 
         self.mem_buffer = Memory_buffer()
 
@@ -89,22 +89,27 @@ class PPO(object):
         self.loss = nn.MSELoss()
 
 
-    def select_action(self, state):
+    def select_action(self, state, eval=False):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(device)
-            action, action_logprob = self.policy_old.get_action(state)
+            state /= self.env_size
+            action, action_logprob, action_prob = self.policy_old.get_action(state)
 
         self.mem_buffer.states.append(state)
         self.mem_buffer.actions.append(action)
         self.mem_buffer.logprobs.append(action_logprob)
 
-        return action.item()
+        if eval:
+            return action.item(), action_prob.item()
+        else:
+            return action.item(), None
 
 
     def update(self):
         # Monte Carlo estimate of returns
         rewards = []
         discounted_reward = 0
+
         for reward, is_terminal in zip(reversed(self.mem_buffer.rewards), reversed(self.mem_buffer.is_terminals)):
             if is_terminal:
                 discounted_reward = 0
@@ -163,18 +168,20 @@ class PPO(object):
 
 if __name__ == "__main__":
     env_name = 'gym-grid-v0'
+    save_name = '50_static'
+    evaluate = False
 
-    run_name = f"{env_name}_{int(time.time())}"
+    run_name = f"{env_name}_{save_name}_{int(time.time())}"
     writer = SummaryWriter(f"runs/{run_name}")
 
-    max_ep_len = 100
-    max_training_timesteps = 2e5
+    max_ep_len = 150        # 150 for size=50, 50 for size=16
+    max_training_timesteps = 3e5
 
     ################ PPO hyperparameters ################
     update_timestep = max_ep_len * 4      # update policy every n timesteps
-    num_epochs = 30               # update policy for K epochs in one PPO update
+    num_epochs = 40               # update policy for K epochs in one PPO update
 
-    entropy_coeff = 0.01    # entropy coefficient to encourage exploration
+    entropy_coeff = 0.05    # entropy coefficient to encourage exploration
 
     eps_clip = 0.2          # clip parameter for PPO
     gamma = 0.99            # discount factor
@@ -187,31 +194,37 @@ if __name__ == "__main__":
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
 
-    dir = 'models/{}/'.format(datetime.datetime.now().strftime("%m-%d_%H-%M"))
+    dir = f'models/{save_name}/'
     if not os.path.exists(dir):
         os.makedirs(dir)
 
     checkpoint_path = dir + 'PPO_model'
 
-    render_dir = 'episode_renders/{}/'.format(datetime.datetime.now().strftime("%m-%d_%H-%M"))
+    render_dir = 'episode_renders/{}_{}/'.format(save_name, datetime.datetime.now().strftime("%m-%d_%H-%M-%S"))
     if not os.path.exists(render_dir):
         os.makedirs(render_dir)
 
-    agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy_coeff)
+    agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy_coeff, max(env.observation_space.high))
+    if evaluate:
+        agent.load(checkpoint_path)
 
     start_time = time.time()
 
     time_step = 0
     i_episode = 0
+    ACTION_PDF = []
     while time_step <= max_training_timesteps:
         states = []
         state = env.reset()
+        states.append(state.copy())
         ep_reward = 0
 
         for t in range(1, max_ep_len+1):
-            states.append(state)
-            action = agent.select_action(state)
+            action, action_pdf = agent.select_action(state, evaluate)
+            if evaluate:
+                ACTION_PDF.append(action_pdf.copy())
             state, reward, done, _ = env.step(action)
+            states.append(state.copy())
 
             agent.mem_buffer.rewards.append(reward)
             agent.mem_buffer.is_terminals.append(done)
@@ -219,7 +232,7 @@ if __name__ == "__main__":
             time_step += 1
             ep_reward += reward
 
-            if time_step % update_timestep == 0:
+            if time_step % update_timestep == 0 and not evaluate:
                 agent.update()
 
             writer.add_scalar('performance/reward', reward, time_step)
@@ -230,25 +243,17 @@ if __name__ == "__main__":
                 print('Saving model at: ', checkpoint_path)
                 agent.save(checkpoint_path)
 
-            # env.render()
-
             if done:
                 break
 
-
-        states = np.asarray(states)
-
-        _, ax = plt.subplots(1, 1)
-        ax.plot(states[:, 0], states[:, 1], 'k-')
-        ax.plot(env.goal_position[0], env.goal_position[1], 'b*')
-        ax.set_xlim(0, env.size[0])
-        ax.set_ylim(0, env.size[1])
-        plt.savefig(render_dir + '{}.png'.format(i_episode), dpi=300)
-        plt.close()
+        states = np.asarray(states, dtype=np.int16)
+        env.save_episode(states, render_dir, i_episode)
 
         print('Episode: {}, Reward: {}'.format(i_episode, ep_reward))
         i_episode += 1
 
+    ACTION_PDF = np.asarray(ACTION_PDF)
+    print(ACTION_PDF.shape)
     env.close()
     writer.close()
 

@@ -5,5 +5,8 @@ gym_grid.egg-info/SOURCES.txt
 gym_grid.egg-info/dependency_links.txt
 gym_grid.egg-info/requires.txt
 gym_grid.egg-info/top_level.txt
+gym_grid/__pycache__/__init__.cpython-39.pyc
 gym_grid/envs/__init__.py
 gym_grid/envs/grid_world.py
+gym_grid/envs/__pycache__/__init__.cpython-39.pyc
+gym_grid/envs/__pycache__/grid_world.cpython-39.pyc

@@ -19,13 +19,13 @@ class gridWorld(gym.Env):
         else:
             self.size = np.ones(2) * size
 
-        self.agent_position = np.array([int(self.size[0] / 2), int(self.size[1] / 2)]).astype(np.uint8)
+        self.agent_position = np.zeros(2).astype(np.int16)
 
-        self.x_choices = np.arange(int(0.7 * self.size[0]), self.size[0]).astype(np.uint8)
-        self.y_choices = np.arange(int(0.7 * self.size[1]), self.size[1]).astype(np.uint8)
+        self.x_choices = np.arange(int(0.7 * self.size[0]), self.size[0]).astype(np.int16)
+        self.y_choices = np.arange(int(0.7 * self.size[1]), self.size[1]).astype(np.int16)
         self.pdf_x = np.linspace(0, 2, len(self.x_choices))
         self.pdf_x = sps.softmax(self.pdf_x)
-        self.pdf_y = np.linspace(0, 2, len(self.x_choices))
+        self.pdf_y = np.linspace(0, 2, len(self.y_choices))
         self.pdf_y = sps.softmax(self.pdf_y)
         self.goal_position = np.array([np.random.choice(self.x_choices, size=1, p=self.pdf_x), np.random.choice(self.y_choices, size=1, p=self.pdf_y)])
 
@@ -34,23 +34,34 @@ class gridWorld(gym.Env):
         self.observation_space = Box(low=0,
                                      high=self.size,
                                      shape=(2,),
-                                     dtype=np.uint8)
+                                     dtype=np.int16)
 
     def step(self, action):
         reward = 0.
 
         if action == self.UP:
             self.agent_position[1] += 1
+            if self.agent_position[1] > self.size[1]:
+                reward -= 25.
+                self.agent_position[1] = self.size[1]
         if action == self.DOWN:
-            if self.agent_position[1] != 0:
-                self.agent_position[1] -= 1
+            self.agent_position[1] -= 1
+            if self.agent_position[1] < 0:
+                reward -= 25.
+                self.agent_position[1] = 0
         if action == self.LEFT:
-            if self.agent_position[0] != 0:
-                self.agent_position[0] -= 1
+            self.agent_position[0] -= 1
+            if self.agent_position[0] < 0:
+                reward -= 25.
+                self.agent_position[0] = 0
         if action == self.RIGHT:
             self.agent_position[0] += 1
+            if self.agent_position[0] > self.size[0]:
+                reward -= 25.
+                self.agent_position[0] = self.size[0]
 
-        self.agent_position = np.clip(self.agent_position, np.zeros(2), self.size).astype(np.uint8)
+        if self.agent_position[0] >= self.x_choices[0] and self.agent_position[1] >= self.y_choices[0]:
+            reward += 2
 
         done = bool((self.agent_position == self.goal_position).all())
         reward = 100 if done else reward
@@ -59,7 +70,7 @@ class gridWorld(gym.Env):
         return self.agent_position, reward, done, {}
 
 
-    def render(self, mode="console"):
+    def save_episode(self, states, render_dir, update):
         xs = -0.5 + np.arange(0, self.size[0] + 1) * 1
         ys = -0.5 + np.arange(0, self.size[1] + 1) * 1
 
@@ -67,24 +78,23 @@ class gridWorld(gym.Env):
         h = 1
 
         _, ax = plt.subplots(1, 1)
-        # for i, x in enumerate(xs[:-1]):
-        #     for j, y in enumerate(ys[:-1]):
-        #         if i % 2 == j % 2:
-        #             ax.add_patch(Rectangle((x, y), w, h, fill=True, color='#838B8B', alpha=0.1))
 
         for x in xs:
             ax.plot([x, x], [ys[0], ys[-1]], color='black', alpha=.33, linestyle=':')
         for y in ys:
             ax.plot([xs[0], xs[-1]], [y, y], color='black', alpha=.33, linestyle=':')
 
-        ax.plot(self.agent_position[0], self.agent_position[1], 'rs', markersize=10)
+        ax.plot(states[:, 0], states[:, 1], 'k-')
         ax.plot(self.goal_position[0], self.goal_position[1], 'b*', markersize=10)
-        plt.pause(0.01)
-        return ax
+        ax.set_xlim(0, self.size[0])
+        ax.set_ylim(0, self.size[1])
+        # plt.pause(0.01)
+        plt.savefig(render_dir + '{}.png'.format(update), dpi=300)
+        plt.close()
 
 
     def reset(self):
-        self.agent_position = np.array([int(self.size[0] / 2), int(self.size[1] / 2)]).astype(np.uint8)
+        self.agent_position = np.zeros(2).astype(np.int16)
         self.goal_position = np.array([np.random.choice(self.x_choices, size=1, p=self.pdf_x), np.random.choice(self.y_choices, size=1, p=self.pdf_y)])
 
         return self.agent_position
