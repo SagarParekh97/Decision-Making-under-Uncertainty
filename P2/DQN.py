@@ -119,12 +119,6 @@ writer = SummaryWriter(f"runs/{run_name}")
 max_episode_len = 400        # 150 for size=50, 50 for size=16
 max_training_ep = 2000
 
-dir = f'models/{save_name}/'
-if not os.path.exists(dir):
-    os.makedirs(dir)
-
-checkpoint_path = dir + 'PPO_model'
-
 render_dir = 'episode_renders/{}_{}/'.format(save_name, datetime.datetime.now().strftime("%m-%d_%H-%M-%S"))
 if not os.path.exists(render_dir):
     os.makedirs(render_dir)

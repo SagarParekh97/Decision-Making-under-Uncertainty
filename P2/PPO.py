@@ -9,12 +9,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-import datetime
 
 
+# select the device to train on
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
+# class to save the agent's experience buffer
 class Memory_buffer():
     def __init__(self):
         self.actions = []
@@ -31,6 +32,7 @@ class Memory_buffer():
         self.is_terminals = []
 
 
+# create the NN architecture for the PPO agent
 class Agent(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(Agent, self).__init__()
@@ -68,6 +70,8 @@ class Agent(nn.Module):
 
         return action_logprobs, value, dist_entropy
 
+
+# Class that trains the policy
 class PPO(object):
     def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy, env_size):
         self.gamma = gamma
@@ -90,7 +94,7 @@ class PPO(object):
         self.loss = nn.MSELoss()
 
 
-    def select_action(self, state, eval=False):
+    def select_action(self, state):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(device)
             state /= self.env_size
@@ -100,10 +104,7 @@ class PPO(object):
         self.mem_buffer.actions.append(action)
         self.mem_buffer.logprobs.append(action_logprob)
 
-        if eval:
-            return action.item(), action_prob.cpu().numpy()
-        else:
-            return action.item(), None
+        return action.item(), action_prob.cpu().numpy()
 
 
     def update(self):
@@ -168,44 +169,52 @@ class PPO(object):
 
 
 if __name__ == "__main__":
-    env_name = 'gym-grid-v0'
-    save_name = '50_dynamic'
-    evaluate = False
+    env_name = 'gym-grid-v0'        # name of the environment you want to use
+    save_name = '50_dynamic_entropy_aware'    # save the file
+    evaluate = False                # true: stops training and evaluates a trained policy, false: trains policy
+    uncertainty_aware = True           # use entropy-aware design
 
-    run_name = f"{env_name}_{save_name}_{int(time.time())}"
+    # log data
+    run_name = f"{env_name}_{save_name}"
     writer = SummaryWriter(f"runs/{run_name}")
 
-    max_ep_len = 400        # 200 for size=50, 50 for size=16
-    max_training_timesteps = max_ep_len * 2000
+    max_ep_len = 400    # time horizon
+    max_training_timesteps = max_ep_len * 2000      # training episodes
 
     ################ PPO hyperparameters ################
     update_timestep = max_ep_len * 4      # update policy every n timesteps
     num_epochs = 40               # update policy for K epochs in one PPO update
 
-    entropy_coeff = 0.05    # entropy coefficient to encourage exploration
+    entropy_coeff = 0.1    # entropy coefficient to encourage exploration
 
     eps_clip = 0.2          # clip parameter for PPO
     gamma = 0.99            # discount factor
 
+    env = gym.make(env_name)
+    W = env.action_space.n      # parameter W for uncertainty
+    a = 1 / 4                   # base rate, assumed uniform
+
     lr_actor = 0.0003       # learning rate for actor network
     lr_critic = 0.001       # learning rate for critic network
 
-    env = gym.make(env_name)
+    state_dim = env.observation_space.shape[0]  # dimension of observation space
+    action_dim = env.action_space.n             # dimension of action space
 
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.n
-
+    # save trained models
     dir = f'models/{save_name}/'
     if not os.path.exists(dir):
         os.makedirs(dir)
 
     checkpoint_path = dir + 'PPO_model'
 
-    render_dir = 'episode_renders/{}_{}/'.format(save_name, datetime.datetime.now().strftime("%m-%d_%H-%M-%S"))
+    # save each episode render
+    render_dir = 'episode_renders/{}/'.format(save_name)
     if not os.path.exists(render_dir):
         os.makedirs(render_dir)
 
+    # PPO agent
     agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy_coeff, max(env.observation_space.high))
+    # load the models if you want to evaluate
     if evaluate:
         agent.load(checkpoint_path)
         max_training_timesteps = max_ep_len * 100
@@ -216,6 +225,8 @@ if __name__ == "__main__":
     i_episode = 0
     ACTION_PDF = []
     STATES = []
+    entropy = 0.
+    # the agent interacts with the environment for the given number of episodes
     while time_step <= max_training_timesteps:
         states = []
         state = env.reset()
@@ -223,12 +234,14 @@ if __name__ == "__main__":
         ep_reward = 0
 
         for t in range(1, max_ep_len+1):
-            action, action_pdf = agent.select_action(state, evaluate)
-            if evaluate:
-                ACTION_PDF.append(action_pdf.copy())
-                STATES.append(state.copy())
+            action, action_pdf = agent.select_action(state)
+            ACTION_PDF.append(action_pdf.copy())
+            STATES.append(state.copy())
+
             state, reward, done, _ = env.step(action)
             states.append(state.copy())
+            if uncertainty_aware:
+                reward += 1 - entropy
 
             agent.mem_buffer.rewards.append(reward)
             agent.mem_buffer.is_terminals.append(done)
@@ -249,6 +262,20 @@ if __name__ == "__main__":
 
             if done:
                 break
+
+        # calculate the uncertainty using saved experience
+        dirichlet = np.asarray(ACTION_PDF)
+        evidence = np.argmax(dirichlet, axis=1)
+        unique, counts = np.unique(evidence, return_counts=True)
+        r = dict(zip(unique, counts))
+        belief = {0: 0., 1: 0., 2: 0., 3: 0.}
+        proj_prob = {0: 0., 1: 0., 2: 0., 3: 0.}
+        u = W / (W + len(evidence))
+        entropy = 0.
+        for key in r:
+            belief[key] = r[key] / (W + len(evidence))
+            proj_prob[key] = belief[key] + a * u
+            entropy -= proj_prob[key] * np.log(proj_prob[key])
 
         states = np.asarray(states, dtype=np.int16)
         if i_episode > max_training_timesteps / 2 / max_ep_len:

@@ -36,6 +36,11 @@ class gridWorld(gym.Env):
                                      shape=(2,),
                                      dtype=np.int16)
 
+
+    def get_uncertainty(self, vacuity):
+        self.vacuity = vacuity
+
+
     def step(self, action):
         reward = 0.
 
