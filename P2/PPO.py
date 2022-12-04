@@ -1,4 +1,5 @@
 import os
+import pickle
 import time
 import gym
 import gym_grid
@@ -100,7 +101,7 @@ class PPO(object):
         self.mem_buffer.logprobs.append(action_logprob)
 
         if eval:
-            return action.item(), action_prob.item()
+            return action.item(), action_prob.cpu().numpy()
         else:
             return action.item(), None
 
@@ -169,7 +170,7 @@ class PPO(object):
 if __name__ == "__main__":
     env_name = 'gym-grid-v0'
     save_name = '50_static'
-    evaluate = False
+    evaluate = True
 
     run_name = f"{env_name}_{save_name}_{int(time.time())}"
     writer = SummaryWriter(f"runs/{run_name}")
@@ -207,12 +208,14 @@ if __name__ == "__main__":
     agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy_coeff, max(env.observation_space.high))
     if evaluate:
         agent.load(checkpoint_path)
+        max_training_timesteps = max_ep_len * 100
 
     start_time = time.time()
 
     time_step = 0
     i_episode = 0
     ACTION_PDF = []
+    STATES = []
     while time_step <= max_training_timesteps:
         states = []
         state = env.reset()
@@ -223,6 +226,7 @@ if __name__ == "__main__":
             action, action_pdf = agent.select_action(state, evaluate)
             if evaluate:
                 ACTION_PDF.append(action_pdf.copy())
+                STATES.append(state.copy())
             state, reward, done, _ = env.step(action)
             states.append(state.copy())
 
@@ -253,7 +257,10 @@ if __name__ == "__main__":
         i_episode += 1
 
     ACTION_PDF = np.asarray(ACTION_PDF)
-    print(ACTION_PDF.shape)
+    STATES = np.asarray(STATES)
+    pickle.dump(STATES, open(checkpoint_path + '_states.pkl', 'wb'))
+    pickle.dump(ACTION_PDF, open(checkpoint_path + '_action_pdf.pkl', 'wb'))
+
     env.close()
     writer.close()
 
