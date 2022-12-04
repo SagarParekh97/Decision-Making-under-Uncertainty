@@ -111,14 +111,13 @@ class DQN(object):
         self.optimizer.step()
 
 dqn = DQN()
-max_episode_len = 150
 save_name = '50_dynamic_dqn'
 
 run_name = f"{'gym-grid-v0'}_{save_name}_{int(time.time())}"
 writer = SummaryWriter(f"runs/{run_name}")
 
-max_ep_len = 150        # 150 for size=50, 50 for size=16
-max_training_ep = int(3e5 / max_ep_len)
+max_episode_len = 400        # 150 for size=50, 50 for size=16
+max_training_ep = 2000
 
 dir = f'models/{save_name}/'
 if not os.path.exists(dir):
@@ -176,7 +175,8 @@ for episode in range(max_training_ep):
         print("episode: " + format(episode)+",   test score: " + format(total_reward/10))
 
     states = np.asarray(states)
-    env.save_episode(states, render_dir, episode)
+    if episode >= max_training_ep / 2:
+        env.save_episode(states, render_dir, episode)
 
 env.close()
 writer.close()

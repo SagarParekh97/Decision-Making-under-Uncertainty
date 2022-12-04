@@ -169,14 +169,14 @@ class PPO(object):
 
 if __name__ == "__main__":
     env_name = 'gym-grid-v0'
-    save_name = '50_static'
-    evaluate = True
+    save_name = '50_dynamic'
+    evaluate = False
 
     run_name = f"{env_name}_{save_name}_{int(time.time())}"
     writer = SummaryWriter(f"runs/{run_name}")
 
-    max_ep_len = 150        # 150 for size=50, 50 for size=16
-    max_training_timesteps = 3e5
+    max_ep_len = 400        # 200 for size=50, 50 for size=16
+    max_training_timesteps = max_ep_len * 2000
 
     ################ PPO hyperparameters ################
     update_timestep = max_ep_len * 4      # update policy every n timesteps
@@ -251,7 +251,8 @@ if __name__ == "__main__":
                 break
 
         states = np.asarray(states, dtype=np.int16)
-        env.save_episode(states, render_dir, i_episode)
+        if i_episode > max_training_timesteps / 2 / max_ep_len:
+            env.save_episode(states, render_dir, i_episode)
 
         print('Episode: {}, Reward: {}'.format(i_episode, ep_reward))
         i_episode += 1
