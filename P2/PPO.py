@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
+from sympy.utilities.iterables import multiset_permutations
 
 
 # select the device to train on
@@ -168,11 +169,19 @@ class PPO(object):
         self.policy.load_state_dict(torch.load(checkpoint_path, map_location=lambda storage, loc: storage))
 
 
+def balance(b1, b2):
+    ret = 1 - abs(b1 - b2) / (b1 + b2 + 1e-7)
+    return ret
+
+
+
 if __name__ == "__main__":
     env_name = 'gym-grid-v0'        # name of the environment you want to use
-    save_name = '50_dynamic_entropy_aware'    # save the file
+    save_name = '50_dynamic'    # save the file
     evaluate = False                # true: stops training and evaluates a trained policy, false: trains policy
     uncertainty_aware = True           # use entropy-aware design
+    if uncertainty_aware:
+        save_name += '_uncertainty_aware'
 
     # log data
     run_name = f"{env_name}_{save_name}"
@@ -225,6 +234,9 @@ if __name__ == "__main__":
     i_episode = 0
     ACTION_PDF = []
     STATES = []
+    ENTROPY = []
+    VACUITY = []
+    DISSONANCE = []
     entropy = 0.
     # the agent interacts with the environment for the given number of episodes
     while time_step <= max_training_timesteps:
@@ -271,11 +283,34 @@ if __name__ == "__main__":
         belief = {0: 0., 1: 0., 2: 0., 3: 0.}
         proj_prob = {0: 0., 1: 0., 2: 0., 3: 0.}
         u = W / (W + len(evidence))
+        VACUITY.append(u)
         entropy = 0.
+        # calculate the belief, projected probability, and entropy
         for key in r:
             belief[key] = r[key] / (W + len(evidence))
             proj_prob[key] = belief[key] + a * u
-            entropy -= proj_prob[key] * np.log(proj_prob[key])
+            entropy -= proj_prob[key] * (np.log(proj_prob[key]) / np.log(4))
+        ENTROPY.append(entropy)
+
+        # calculate dissonance
+        bal = {}
+        permutations = multiset_permutations(range(4), 2)
+        for p in permutations:
+            bal[str(p)] = balance(belief[p[0]], belief[p[1]])
+
+        dissonance = 0.
+        set_without_xi = [0, 1, 2, 3]
+        for xi in range(4):
+            set_without_xi.remove(xi)
+            num = 0.
+            den = 0.
+            for xj in set_without_xi:
+                num += belief[xj] * bal[f'[{int(xi)}, {int(xj)}]']
+                den += belief[xj]
+            dissonance += belief[xi] * num / den
+
+            set_without_xi = [0, 1, 2, 3]
+        DISSONANCE += dissonance
 
         states = np.asarray(states, dtype=np.int16)
         if i_episode > max_training_timesteps / 2 / max_ep_len:
@@ -286,8 +321,14 @@ if __name__ == "__main__":
 
     ACTION_PDF = np.asarray(ACTION_PDF)
     STATES = np.asarray(STATES)
+    ENTROPY = np.asarray(ENTROPY)
+    VACUITY = np.asarray(VACUITY)
+    DISSONANCE = np.asarray(DISSONANCE)
     pickle.dump(STATES, open(checkpoint_path + '_states.pkl', 'wb'))
     pickle.dump(ACTION_PDF, open(checkpoint_path + '_action_pdf.pkl', 'wb'))
+    pickle.dump(DISSONANCE, open(checkpoint_path + '_dissonance.pkl', 'wb'))
+    pickle.dump(ENTROPY, open(checkpoint_path + '_entropy.pkl', 'wb'))
+    pickle.dump(VACUITY, open(checkpoint_path + '_vacuity.pkl', 'wb'))
 
     env.close()
     writer.close()
