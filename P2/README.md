@@ -20,19 +20,43 @@ Run the following command to train
 vanilla RL
 
 ```
-python PPO.py False none
+python PPO.py false none none
 ```
 
 To train uncertainty aware RL with entropy (where reward = 1 - H), run
 
 ```
-python PPO.py True entropy
+python PPO.py true false H
 ```
 
-To train uncertainty aware RL with dissonance (where reward = 1 - u_d), run
+To train uncertainty aware RL with dissonance (where reward = 1 - D), run
 
 ```
-python PPO.py True dissonance
+python PPO.py true false D
+```
+
+To train uncertainty aware RL with maximized vacuity (where reward = 1 - V), run
+
+```
+python PPO.py true false V
+```
+
+To train uncertainty aware RL with entropy (where exploration coefficient e = e(1 - H)), run
+
+```
+python PPO.py true true H
+```
+
+To train uncertainty aware RL with dissonance (where exploration coefficient e = e(1 - D)), run
+
+```
+python PPO.py true true D
+```
+
+To train uncertainty aware RL with maximized uncertainty (where exploration coefficient e = e(1 - V)), run
+
+```
+python PPO.py true true V
 ```
 
 Once you have trained all the models, run the following command to generate the 
