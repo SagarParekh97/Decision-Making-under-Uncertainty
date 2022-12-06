@@ -262,23 +262,17 @@ if __name__ == "__main__":
             if uncertainty_aware:
                 if sys.argv[2] == 'true':
                     if sys.argv[3] == 'H':
-                        print('Entropy for balancing exploration-exploitation')
                         entropy_coeff *= 1 - entropy
                     elif sys.argv[3] == 'D':
-                        print('Dissonance for balancing exploration-exploitation')
                         entropy_coeff *= 1 - dissonance
                     elif sys.argv[3] == 'V':
-                        print('Maximized uncertainty for balancing exploration-exploitation')
                         entropy_coeff *= 1 - u_dd
                 else:
                     if sys.argv[3] == 'H':
-                        print('Entropy as uncertainty reward')
                         reward += 1 - entropy
                     elif sys.argv[3] == 'D':
-                        print('Dissonance as uncertainty reward')
                         reward += 1 - dissonance
                     elif sys.argv[3] == 'V':
-                        print('Maximized uncertainty as uncertainty reward')
                         reward += 1 - u_dd
 
             agent.mem_buffer.rewards.append(reward)
