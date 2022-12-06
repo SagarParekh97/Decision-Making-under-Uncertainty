@@ -1,3 +1,5 @@
+import pickle
+
 import gym
 import gym_grid
 import torch
@@ -113,17 +115,18 @@ class DQN(object):
 dqn = DQN()
 save_name = '50_dynamic_dqn'
 
-run_name = f"{'gym-grid-v0'}_{save_name}_{int(time.time())}"
+run_name = f"{'gym-grid-v0'}_{save_name}"
 writer = SummaryWriter(f"runs/{run_name}")
 
 max_episode_len = 400        # 150 for size=50, 50 for size=16
 max_training_ep = 2000
 
-render_dir = 'episode_renders/{}_{}/'.format(save_name, datetime.datetime.now().strftime("%m-%d_%H-%M-%S"))
+render_dir = 'episode_renders/{}/'.format(save_name)
 if not os.path.exists(render_dir):
     os.makedirs(render_dir)
 
 total_t = 0
+REWARDS = []
 for episode in range(max_training_ep):
     states = []
     s = env.reset()
@@ -149,6 +152,8 @@ for episode in range(max_training_ep):
 
         writer.add_scalar('performance/reward', r, total_t)
 
+    REWARDS.append(ep_r)
+
     if episode % 100 == 0: #test
         total_reward = 0.0
         for i in range(10):
@@ -169,8 +174,13 @@ for episode in range(max_training_ep):
         print("episode: " + format(episode)+",   test score: " + format(total_reward/10))
 
     states = np.asarray(states)
-    if episode >= max_training_ep / 2:
+    if episode >= max_training_ep - 500:
         env.save_episode(states, render_dir, episode)
 
 env.close()
 writer.close()
+
+REWARDS = np.asarray(REWARDS)
+if not os.path.exists('models/dqn/'):
+    os.makedirs('models/dqn/')
+pickle.dump(REWARDS, open('models/dqn/rewards.pkl', 'wb'))

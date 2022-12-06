@@ -10,6 +10,7 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from sympy.utilities.iterables import multiset_permutations
+import sys
 
 
 # select the device to train on
@@ -177,10 +178,11 @@ def balance(b1, b2):
 
 if __name__ == "__main__":
     env_name = 'gym-grid-v0'        # name of the environment you want to use
-    save_name = '50_dynamic'    # save the file
-    evaluate = False                # true: stops training and evaluates a trained policy, false: trains policy
-    uncertainty_aware = True           # use entropy-aware design
-    if uncertainty_aware:
+    save_name = '50_dynamic'        # save the file
+    uncertainty_aware = sys.argv[1]           # use entropy-aware design
+
+    if uncertainty_aware == 'True':
+        uncertainty_aware = True
         save_name += '_uncertainty_aware'
 
     # log data
@@ -194,7 +196,7 @@ if __name__ == "__main__":
     update_timestep = max_ep_len * 4      # update policy every n timesteps
     num_epochs = 40               # update policy for K epochs in one PPO update
 
-    entropy_coeff = 0.1    # entropy coefficient to encourage exploration
+    entropy_coeff = 0.05    # entropy coefficient to encourage exploration
 
     eps_clip = 0.2          # clip parameter for PPO
     gamma = 0.99            # discount factor
@@ -223,10 +225,6 @@ if __name__ == "__main__":
 
     # PPO agent
     agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, num_epochs, eps_clip, entropy_coeff, max(env.observation_space.high))
-    # load the models if you want to evaluate
-    if evaluate:
-        agent.load(checkpoint_path)
-        max_training_timesteps = max_ep_len * 100
 
     start_time = time.time()
 
@@ -237,6 +235,8 @@ if __name__ == "__main__":
     ENTROPY = []
     VACUITY = []
     DISSONANCE = []
+    REWARDS = []
+    REACHED_GOAL = []
     entropy = 0.
     # the agent interacts with the environment for the given number of episodes
     while time_step <= max_training_timesteps:
@@ -244,6 +244,7 @@ if __name__ == "__main__":
         state = env.reset()
         states.append(state.copy())
         ep_reward = 0
+        ep_terminal = 0
 
         for t in range(1, max_ep_len+1):
             action, action_pdf = agent.select_action(state)
@@ -261,7 +262,7 @@ if __name__ == "__main__":
             time_step += 1
             ep_reward += reward
 
-            if time_step % update_timestep == 0 and not evaluate:
+            if time_step % update_timestep == 0:
                 agent.update()
 
             writer.add_scalar('performance/reward', reward, time_step)
@@ -273,7 +274,14 @@ if __name__ == "__main__":
                 agent.save(checkpoint_path)
 
             if done:
+                # check if the agetn reached the goal
+                if (env.agent_position == env.goal_position).all():
+                    ep_terminal = 1
+                else:
+                    ep_terminal = 0
                 break
+
+        REACHED_GOAL.append(ep_terminal)
 
         # calculate the uncertainty using saved experience
         dirichlet = np.asarray(ACTION_PDF)
@@ -310,8 +318,10 @@ if __name__ == "__main__":
             dissonance += belief[xi] * num / den
 
             set_without_xi = [0, 1, 2, 3]
-        DISSONANCE += dissonance
+        DISSONANCE.append(dissonance)
+        REWARDS.append(ep_reward)
 
+        # render the episode
         states = np.asarray(states, dtype=np.int16)
         if i_episode > max_training_timesteps / 2 / max_ep_len:
             env.save_episode(states, render_dir, i_episode)
@@ -324,11 +334,15 @@ if __name__ == "__main__":
     ENTROPY = np.asarray(ENTROPY)
     VACUITY = np.asarray(VACUITY)
     DISSONANCE = np.asarray(DISSONANCE)
+    REWARDS = np.asarray(REWARDS)
+    REACHED_GOAL = np.asarray(REACHED_GOAL)
     pickle.dump(STATES, open(checkpoint_path + '_states.pkl', 'wb'))
     pickle.dump(ACTION_PDF, open(checkpoint_path + '_action_pdf.pkl', 'wb'))
     pickle.dump(DISSONANCE, open(checkpoint_path + '_dissonance.pkl', 'wb'))
     pickle.dump(ENTROPY, open(checkpoint_path + '_entropy.pkl', 'wb'))
     pickle.dump(VACUITY, open(checkpoint_path + '_vacuity.pkl', 'wb'))
+    pickle.dump(REWARDS, open(checkpoint_path + '_rewards.pkl', 'wb'))
+    pickle.dump(REACHED_GOAL, open(checkpoint_path + '_reached_goal.pkl', 'wb'))
 
     env.close()
     writer.close()

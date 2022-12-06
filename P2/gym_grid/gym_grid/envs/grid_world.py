@@ -37,10 +37,6 @@ class gridWorld(gym.Env):
                                      dtype=np.int16)
 
 
-    def get_uncertainty(self, vacuity):
-        self.vacuity = vacuity
-
-
     def step(self, action):
         reward = 0.
 
