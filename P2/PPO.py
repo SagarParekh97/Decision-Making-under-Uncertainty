@@ -284,8 +284,6 @@ if __name__ == "__main__":
             if time_step % update_timestep == 0:
                 agent.update()
 
-            writer.add_scalar('performance/reward', reward, time_step)
-
             if time_step % 100000 == 0:
                 print()
                 print('-------------------')
@@ -348,6 +346,8 @@ if __name__ == "__main__":
         states = np.asarray(states, dtype=np.int16)
         if i_episode > max_training_timesteps - 100:
             env.save_episode(states, render_dir, i_episode)
+
+        writer.add_scalar('performance/reward', ep_reward, i_episode)
 
         print('Episode: {}, Reward: {}'.format(i_episode, ep_reward))
         i_episode += 1
