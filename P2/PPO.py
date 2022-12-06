@@ -326,7 +326,7 @@ if __name__ == "__main__":
 
         # render the episode
         states = np.asarray(states, dtype=np.int16)
-        if i_episode > max_training_timesteps / 2 / max_ep_len:
+        if i_episode > max_training_timesteps - 500:
             env.save_episode(states, render_dir, i_episode)
 
         print('Episode: {}, Reward: {}'.format(i_episode, ep_reward))
