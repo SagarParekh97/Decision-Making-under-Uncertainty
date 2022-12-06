@@ -131,7 +131,6 @@ class PPO(object):
 
         # Optimize policy for K epochs
         for _ in range(self.num_epochs):
-
             # Evaluating old actions and values
             logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions)
 
@@ -178,12 +177,17 @@ def balance(b1, b2):
 
 if __name__ == "__main__":
     env_name = 'gym-grid-v0'        # name of the environment you want to use
-    save_name = 'results'        # save the file
+    save_name = 'RL'        # save the file
     uncertainty_aware = sys.argv[1]           # use entropy-aware design
+    exp_exp = sys.argv[2]
+    if exp_exp == 'true':
+        save_name += 'G'
+    elif exp_exp == 'false':
+        save_name += 'R'
 
-    if uncertainty_aware == 'True':
+    if uncertainty_aware == 'true':
         uncertainty_aware = True
-        save_name += '_{}'.format(sys.argv[2])
+        save_name += '_{}'.format(sys.argv[3])
 
     # log data
     run_name = f"{env_name}_{save_name}"
@@ -255,12 +259,27 @@ if __name__ == "__main__":
 
             state, reward, done, _ = env.step(action)
             states.append(state.copy())
-            if uncertainty_aware and sys.argv[2] == 'entropy':
-                reward += 1 - entropy
-            elif uncertainty_aware and sys.argv[2] == 'dissonance':
-                reward += 1 - dissonance
-            elif uncertainty_aware and sys.argv[2] == 'entropy_max':
-                reward += 1 - u_dd
+            if uncertainty_aware:
+                if sys.argv[2] == 'true':
+                    if sys.argv[3] == 'H':
+                        print('Entropy for balancing exploration-exploitation')
+                        entropy_coeff *= 1 - entropy
+                    elif sys.argv[3] == 'D':
+                        print('Dissonance for balancing exploration-exploitation')
+                        entropy_coeff *= 1 - dissonance
+                    elif sys.argv[3] == 'V':
+                        print('Maximized uncertainty for balancing exploration-exploitation')
+                        entropy_coeff *= 1 - u_dd
+                else:
+                    if sys.argv[3] == 'H':
+                        print('Entropy as uncertainty reward')
+                        reward += 1 - entropy
+                    elif sys.argv[3] == 'D':
+                        print('Dissonance as uncertainty reward')
+                        reward += 1 - dissonance
+                    elif sys.argv[3] == 'V':
+                        print('Maximized uncertainty as uncertainty reward')
+                        reward += 1 - u_dd
 
             agent.mem_buffer.rewards.append(reward)
             agent.mem_buffer.is_terminals.append(done)
@@ -333,7 +352,7 @@ if __name__ == "__main__":
 
         # render the episode
         states = np.asarray(states, dtype=np.int16)
-        if i_episode > max_training_timesteps - 500:
+        if i_episode > max_training_timesteps - 100:
             env.save_episode(states, render_dir, i_episode)
 
         print('Episode: {}, Reward: {}'.format(i_episode, ep_reward))
