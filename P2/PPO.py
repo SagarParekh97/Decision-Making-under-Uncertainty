@@ -239,6 +239,7 @@ if __name__ == "__main__":
     REACHED_GOAL = []
     entropy = 0.
     dissonance = 0.
+    u_dd = 0.
     # the agent interacts with the environment for the given number of episodes
     while time_step <= max_training_timesteps:
         states = []
@@ -258,6 +259,8 @@ if __name__ == "__main__":
                 reward += 1 - entropy
             elif uncertainty_aware and sys.argv[2] == 'dissonance':
                 reward += 1 - dissonance
+            elif uncertainty_aware and sys.argv[2] == 'entropy_max':
+                reward += 1 - u_dd
 
             agent.mem_buffer.rewards.append(reward)
             agent.mem_buffer.is_terminals.append(done)
@@ -302,6 +305,10 @@ if __name__ == "__main__":
             proj_prob[key] = belief[key] + a * u
             entropy -= proj_prob[key] * (np.log(proj_prob[key]) / np.log(4))
         ENTROPY.append(entropy)
+
+        u_dd = np.inf
+        for k in proj_prob:
+            u_dd = min(u_dd, proj_prob[k]/a)
 
         # calculate dissonance
         bal = {}
