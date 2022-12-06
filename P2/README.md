@@ -8,7 +8,15 @@ Run the following commands to install the requirements.
 pip install -r requirements.txt
 ```
 
-Once all the required packages are installed, run the following command to train
+Once all the required packages are installed, do the following to install the custom gym environment
+
+```
+cd gym_grid
+pip install -e .
+cd ..
+```
+
+Run the following command to train
 vanilla RL
 
 ```
