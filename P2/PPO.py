@@ -178,12 +178,12 @@ def balance(b1, b2):
 
 if __name__ == "__main__":
     env_name = 'gym-grid-v0'        # name of the environment you want to use
-    save_name = '50_dynamic'        # save the file
+    save_name = 'results'        # save the file
     uncertainty_aware = sys.argv[1]           # use entropy-aware design
 
     if uncertainty_aware == 'True':
         uncertainty_aware = True
-        save_name += '_uncertainty_aware'
+        save_name += '_{}'.format(sys.argv[2])
 
     # log data
     run_name = f"{env_name}_{save_name}"
@@ -238,6 +238,7 @@ if __name__ == "__main__":
     REWARDS = []
     REACHED_GOAL = []
     entropy = 0.
+    dissonance = 0.
     # the agent interacts with the environment for the given number of episodes
     while time_step <= max_training_timesteps:
         states = []
@@ -253,8 +254,10 @@ if __name__ == "__main__":
 
             state, reward, done, _ = env.step(action)
             states.append(state.copy())
-            if uncertainty_aware:
+            if uncertainty_aware and sys.argv[2] == 'entropy':
                 reward += 1 - entropy
+            elif uncertainty_aware and sys.argv[2] == 'dissonance':
+                reward += 1 - dissonance
 
             agent.mem_buffer.rewards.append(reward)
             agent.mem_buffer.is_terminals.append(done)
@@ -275,7 +278,7 @@ if __name__ == "__main__":
 
             if done:
                 # check if the agetn reached the goal
-                if (env.agent_position == env.goal_position).all():
+                if (env.agent_position - env.goal_position).all():
                     ep_terminal = 1
                 else:
                     ep_terminal = 0
@@ -311,7 +314,7 @@ if __name__ == "__main__":
         for xi in range(4):
             set_without_xi.remove(xi)
             num = 0.
-            den = 0.
+            den = 1e-7
             for xj in set_without_xi:
                 num += belief[xj] * bal[f'[{int(xi)}, {int(xj)}]']
                 den += belief[xj]
