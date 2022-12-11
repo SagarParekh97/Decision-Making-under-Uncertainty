@@ -21,8 +21,8 @@ class gridWorld(gym.Env):
 
         self.agent_position = np.zeros(2).astype(np.int16)
 
-        self.x_choices = np.arange(int(0.7 * self.size[0]), self.size[0]).astype(np.int16)
-        self.y_choices = np.arange(int(0.7 * self.size[1]), self.size[1]).astype(np.int16)
+        self.x_choices = np.arange(int(0.6 * self.size[0]), self.size[0]).astype(np.int16)
+        self.y_choices = np.arange(int(0.6 * self.size[1]), self.size[1]).astype(np.int16)
         self.pdf_x = np.linspace(0, 2, len(self.x_choices))
         self.pdf_x = sps.softmax(self.pdf_x)
         self.pdf_y = np.linspace(0, 2, len(self.y_choices))

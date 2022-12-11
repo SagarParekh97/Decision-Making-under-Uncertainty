@@ -189,8 +189,7 @@ if __name__ == "__main__":
         uncertainty_aware = True
         save_name += '_{}'.format(sys.argv[3])
 
-    if sys.argv[4]:
-        save_name += 'eps_' + sys.argv[4]
+    save_name += '40'
 
     # log data
     run_name = f"{env_name}_{save_name}"
@@ -207,8 +206,6 @@ if __name__ == "__main__":
 
     eps_clip = 0.2          # clip parameter for PPO
     gamma = 0.99            # discount factor
-    if sys.argv[4]:
-        entropy_coeff = float(sys.argv[4])
 
     env = gym.make(env_name)
     W = env.action_space.n      # parameter W for uncertainty
