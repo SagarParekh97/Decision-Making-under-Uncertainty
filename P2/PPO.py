@@ -203,6 +203,7 @@ if __name__ == "__main__":
     num_epochs = 40               # update policy for K epochs in one PPO update
 
     entropy_coeff = 0.05    # entropy coefficient to encourage exploration
+    epsilon_0 = 0.05
 
     eps_clip = 0.2          # clip parameter for PPO
     gamma = 0.99            # discount factor
@@ -264,11 +265,11 @@ if __name__ == "__main__":
             if uncertainty_aware:
                 if sys.argv[2] == 'true':
                     if sys.argv[3] == 'H':
-                        entropy_coeff *= 1 - entropy
+                        entropy_coeff = epsilon_0 * (1 - entropy)
                     elif sys.argv[3] == 'D':
-                        entropy_coeff *= 1 - dissonance
+                        entropy_coeff = epsilon_0 * (1 - dissonance)
                     elif sys.argv[3] == 'V':
-                        entropy_coeff *= 1 - u_dd
+                        entropy_coeff = epsilon_0 * (1 - u_dd)
                 else:
                     if sys.argv[3] == 'H':
                         reward += 1 - entropy
